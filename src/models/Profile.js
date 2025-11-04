@@ -7,73 +7,69 @@ const profileSchema = new mongoose.Schema({
         required: true,
         unique: true,
     },
+
+    name: {
+        type: String,
+        trim: true,
+        maxlength: 50,
+        required: true,
+    },
+
     avatarUrl: {
         type: String,
-        default: '',
         trim: true,
+        default: '',
     },
     coverPhotoUrl: {
         type: String,
-        default: '',
         trim: true,
+        default: '',
     },
+
     phone: {
         type: String,
         trim: true,
     },
+
     bio: {
         type: String,
-        default: 'Hello! Let\'s be friends',
-        maxlength: 160,
         trim: true,
+        maxlength: 160,
+        default: "Hello! Let's be friends",
     },
+
     gender: {
         type: String,
         enum: ['male', 'female', 'other', 'unrevealed'],
         default: 'unrevealed',
     },
-    location: {
-        country: String,
-        city: String,
-        trim: true,
-        maxlength: 50,
+
+    dateOfBirth: {
+        type: Date,
+        default: null,
     },
+
+    location: {
+        country: { type: String, trim: true, maxlength: 50 },
+        city: { type: String, trim: true, maxlength: 50 },
+    },
+
     status: {
         type: String,
-        enum: ['online', 'offline', 'away', 'busy'],
+        enum: ['online', 'offline', 'busy'],
         default: 'offline',
     },
+
     lastSeen: {
         type: Date,
         default: Date.now,
-    }, 
-    friends: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-    }],
-    friendRequests: [{
-        from: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
-        },
-        sentAt: {
-            type: Date,
-            default: Date.now,
-        },
-        status: {
-            type: String,
-            enum: ['pending', 'accepted', 'rejected'],
-            default: 'pending',
-        }
-    }],
-    blockedUsers: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-    }],
+    },
+
+    // cài đặt người dùng
     settings: {
         theme: {
             type: String,
-            enum: ['light', 'dark'],
+            enum: ['light', 'dark', 'system'],
             default: 'light',
         },
         language: {
@@ -85,25 +81,29 @@ const profileSchema = new mongoose.Schema({
             type: Boolean,
             default: true,
         },
+        privacy: {
+            showLastSeen: { type: Boolean, default: true },
+            showOnlineStatus: { type: Boolean, default: true },
+        }
     },
 }, { timestamps: true });
 
-// Pre-save hook to set default avatar
-profileSchema.pre('save', function(next) {
+// Pre-save hook để set ảnh mặc định
+profileSchema.pre('save', function (next) {
     if (!this.avatarUrl || this.avatarUrl.trim() === '') {
-        if (this.gender === 'male') {
-            this.avatarUrl = '';
-        }
-        else if (this.gender === 'female') {
-            this.avatarUrl = '';
-        }
-        else {
-            this.avatarUrl = '';
+        switch (this.gender) {
+            case 'male':
+                this.avatarUrl = '/images/default_male.png';
+                break;
+            case 'female':
+                this.avatarUrl = '/images/default_female.png';
+                break;
+            default:
+                this.avatarUrl = '/images/default_avatar.png';
         }
     }
     next();
 });
 
 const Profile = mongoose.model('Profile', profileSchema);
-
 export default Profile;
