@@ -25,6 +25,14 @@ export const sendMessage = async (req, res) => {
 
     const savedMessage = await newMessage.save();
 
+    // 🔹 Populate sender (và các field khác nếu cần)
+    const populatedMessage = await Message.findById(savedMessage._id)
+      .populate('sender', 'username _id')
+      .populate({
+        path: 'replyTo',
+        populate: { path: 'sender', select: 'username avatar _id' } // nếu replyTo là ref Message
+      });
+
     // Cập nhật lastMessage và lastMessageAt trong Conversation
     conversation.lastMessage = savedMessage._id;
     conversation.lastMessageAt = savedMessage.createdAt;
@@ -32,7 +40,7 @@ export const sendMessage = async (req, res) => {
 
     res.status(201).json({
       message: 'Message sent successfully',
-      data: savedMessage
+      data: populatedMessage
     });
   } catch (error) {
     console.error('Error sending message:', error);
