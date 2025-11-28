@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import Profile from "../models/Profile.js";
 
 // Login
 export const login = async (req, res) => {
@@ -68,6 +69,13 @@ export const register = async (req, res) => {
         });
 
         await newUser.save();
+
+        // Create new profile
+        const newProfile = new Profile ({
+            userId: newUser._id
+        });
+
+        await newProfile.save();
 
         // JWT token generation (optional)
         const token = jwt.sign(

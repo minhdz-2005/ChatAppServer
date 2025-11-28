@@ -22,7 +22,18 @@ export const getProfileByUserId = async (req, res) => {
  */
 export const createProfile = async (req, res) => {
     try {
-        const { userId, name, gender } = req.body;
+        const { userId,
+            name,
+            avatarUrl,
+            coverPhotoUrl,
+            phone,
+            bio,
+            gender,
+            dateOfBirth,
+            location,
+            status,
+            lastSeen,
+            settings, } = req.body;
 
         // Kiểm tra trùng userId
         const existing = await Profile.findOne({ userId });
@@ -32,7 +43,16 @@ export const createProfile = async (req, res) => {
         const profile = new Profile({
             userId,
             name,
+            avatarUrl,
+            coverPhotoUrl,
+            phone,
+            bio,
             gender,
+            dateOfBirth,
+            location,
+            status,
+            lastSeen,
+            settings,
         });
 
         await profile.save();

@@ -7,6 +7,8 @@ import { connectDB, disconnectDB } from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import relationshipRoutes from './routes/relationshipRoutes.js';
+import conversationRoutes from './routes/conversationRoutes.js';
+import messageRoutes from './routes/messageRoutes.js';
 
 dotenv.config(); // Load environment variables
 const app = express(); // Initialize Express app
@@ -39,7 +41,9 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', authRoutes); // Auth routes
 app.use("/api/profile", profileRoutes);
-app.use("api/relationship", relationshipRoutes);
+app.use("/api/relationship", relationshipRoutes);
+app.use("/api/conversation", conversationRoutes);
+app.use("/api/message", messageRoutes);
 
 // Running the server
 const PORT = process.env.PORT || 5000;

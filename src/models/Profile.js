@@ -12,7 +12,7 @@ const profileSchema = new mongoose.Schema({
         type: String,
         trim: true,
         maxlength: 50,
-        required: true,
+        default: 'Mizum User',
     },
 
     avatarUrl: {
@@ -29,6 +29,7 @@ const profileSchema = new mongoose.Schema({
     phone: {
         type: String,
         trim: true,
+        default: '',
     },
 
     bio: {
@@ -50,8 +51,18 @@ const profileSchema = new mongoose.Schema({
     },
 
     location: {
-        country: { type: String, trim: true, maxlength: 50 },
-        city: { type: String, trim: true, maxlength: 50 },
+        country: { 
+            type: String, 
+            trim: true, 
+            maxlength: 50, 
+            default: ''
+        },
+        city: { 
+            type: String, 
+            trim: true, 
+            maxlength: 50,
+            default: '', 
+        },
     },
 
     status: {

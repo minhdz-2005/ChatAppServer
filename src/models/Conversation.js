@@ -5,7 +5,6 @@ const conversationSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
-        unique: true,
         trim: true
     }],
     lastMessage: {
@@ -22,7 +21,17 @@ const conversationSchema = new mongoose.Schema({
         type: String,
         trim: true,
         default: null,
+        required: function() { return this.isGroup; },
     },
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null,
+    },
+    lastMessageAt: {
+        type: Date,
+        default: null,
+    }
 }, { timestamps: true });
 
 export default mongoose.model('Conversation', conversationSchema);
