@@ -6,6 +6,8 @@ export const sendMessage = async (req, res) => {
   try {
     const { conversationId, sender, content, mediaUrls, type, stickerId, replyTo } = req.body;
 
+    const io = req.app.get('io');
+
     // Kiểm tra conversation tồn tại
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
@@ -37,6 +39,9 @@ export const sendMessage = async (req, res) => {
     conversation.lastMessage = savedMessage._id;
     conversation.lastMessageAt = savedMessage.createdAt;
     await conversation.save();
+
+    // Phát sự kiện qua Socket.io đến tất cả client trong phòng cuộc trò chuyện
+    io.to(conversationId).emit('newMessage', populatedMessage);
 
     res.status(201).json({
       message: 'Message sent successfully',
