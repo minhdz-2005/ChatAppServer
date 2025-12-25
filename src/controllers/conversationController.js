@@ -20,7 +20,9 @@ export const createConversation = async (req, res) => {
       const existing = await Conversation.findOne({
         isGroup: false,
         participants: { $all: participants, $size: 2 },
-      });
+      })
+        .populate("participants", "username email avatar") // populate thông tin người tham gia
+        .populate("lastMessage");
 
       if (existing) {
         return res.status(200).json(existing);
@@ -35,7 +37,11 @@ export const createConversation = async (req, res) => {
     });
 
     const saved = await newConversation.save();
-    res.status(201).json(saved);
+    const populatedConversation = await Conversation.findById(saved._id)
+      .populate("participants", "username email avatar")
+      .populate("lastMessage");
+
+    res.status(201).json(populatedConversation);
   } catch (err) {
     console.error("Error creating conversation:", err);
     res.status(500).json({ message: "Server error" });

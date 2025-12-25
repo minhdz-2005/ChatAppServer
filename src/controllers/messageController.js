@@ -57,18 +57,29 @@ export const sendMessage = async (req, res) => {
 export const getMessagesByConversation = async (req, res) => {
   try {
     const { conversationId } = req.params;
+    const { limit = 20, before } = req.query;
 
-    const messages = await Message.find({ conversationId })
-      .populate('sender', 'username email')
-      .populate('replyTo')
-      .sort({ createdAt: 1 });
+    const query = { conversationId };
 
-    res.status(200).json(messages);
+    // Nếu có cursor (load tin cũ)
+    if (before) {
+      query.createdAt = { $lt: new Date(before) };
+    }
+
+    const messages = await Message.find(query)
+      .populate("sender", "username email avatar")
+      .populate("replyTo")
+      .sort({ createdAt: -1 }) // lấy mới nhất trước
+      .limit(Number(limit));
+
+    // Đảo ngược lại để hiển thị đúng thứ tự
+    res.status(200).json(messages.reverse());
   } catch (error) {
-    console.error('Error fetching messages:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error("Error fetching messages:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // 🟠 Chỉnh sửa tin nhắn
 export const editMessage = async (req, res) => {
