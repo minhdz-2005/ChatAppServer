@@ -5,6 +5,8 @@ import http from 'http';
 import { Server } from 'socket.io';
 
 import { connectDB, disconnectDB } from './config/db.js';
+import User from './models/User.js';
+import Profile from './models/Profile.js';
 
 // Import routes
 import authRoutes from './routes/authRoutes.js';
@@ -69,14 +71,45 @@ app.set('io', io); // Make io accessible in routes/controllers via req.app.get('
 io.on('connection', (socket) => {
     console.log('New client connected:', socket.id);
 
+    // userOnline event
+    socket.on('userOnline', async (userId) => {
+        if (socket.userId === userId) return;
+        socket.userId = userId;
+        console.log(`User ${userId} is online`);
+
+        // update user's status in DB to 'online'
+        const currentProfile = await Profile.findOne({ userId });
+        if (currentProfile) {
+            currentProfile.status = 'online';
+            currentProfile.lastSeen = Date.now();
+            await currentProfile.save();
+        }
+
+        // Notify friends about user's online status
+        socket.broadcast.emit('friendOnline', userId);
+    });
+
     // Client joining a conversation room
     socket.on('joinConversation', (conversationId) => {
         socket.join(conversationId);
         console.log(`Socket ${socket.id} joined conversation ${conversationId}`);
     });
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
         console.log('Client disconnected:', socket.id);
+
+        // update user's status in DB to 'offline' and set lastSeen
+        if (socket.userId) {
+            const currentProfile = await Profile.findOne({ userId: socket.userId });
+            if (currentProfile) {
+                currentProfile.status = 'offline';
+                currentProfile.lastSeen = Date.now();
+                await currentProfile.save();
+            }
+
+            // Notify friends about user's offline status
+            socket.broadcast.emit('friendOffline', socket.userId);
+        }
     });
 });
 

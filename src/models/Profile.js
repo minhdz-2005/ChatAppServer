@@ -104,14 +104,17 @@ profileSchema.pre('save', function (next) {
     if (!this.avatarUrl || this.avatarUrl.trim() === '') {
         switch (this.gender) {
             case 'male':
-                this.avatarUrl = '/images/default_male.png';
+                this.avatarUrl = 'https://i.pinimg.com/1200x/6e/59/95/6e599501252c23bcf02658617b29c894.jpg';
                 break;
             case 'female':
-                this.avatarUrl = '/images/default_female.png';
+                this.avatarUrl = 'https://i.pinimg.com/736x/50/1f/04/501f04eef76531a1296714c6c9efb41d.jpg';
                 break;
             default:
-                this.avatarUrl = '/images/default_avatar.png';
+                this.avatarUrl = 'https://i.pinimg.com/736x/70/78/88/707888a23862a1e94597c925342cf817.jpg';
         }
+    }
+    if (!this.coverPhotoUrl || this.coverPhotoUrl.trim() === '') {
+        this.coverPhotoUrl = 'https://i.pinimg.com/1200x/93/7a/b3/937ab38356608f4c606302b7e0bd2f07.jpg';
     }
     next();
 });
