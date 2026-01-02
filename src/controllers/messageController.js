@@ -4,18 +4,7 @@ import Conversation from '../models/Conversation.js';
 // 🟢 Gửi tin nhắn mới
 export const sendMessage = async (req, res) => {
   try {
-    const { conversationId, sender, content, mediaUrls, type, stickerId, replyTo } = req.body;
-
-    const io = req.app.get('io');
-
-    // Kiểm tra conversation tồn tại
-    const conversation = await Conversation.findById(conversationId);
-    if (!conversation) {
-      return res.status(404).json({ message: 'Conversation not found' });
-    }
-
-    // Tạo message mới
-    const newMessage = new Message({
+    const {
       conversationId,
       sender,
       content,
@@ -23,35 +12,86 @@ export const sendMessage = async (req, res) => {
       type,
       stickerId,
       replyTo
+    } = req.body;
+
+    const io = req.app.get('io');
+
+    // 1️⃣ Kiểm tra conversation tồn tại
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ message: 'Conversation not found' });
+    }
+
+    // 2️⃣ Tạo message mới (mặc định là sent)
+    const newMessage = new Message({
+      conversationId,
+      sender,
+      content,
+      mediaUrls,
+      type,
+      stickerId,
+      replyTo,
+      status: 'sent'
     });
 
     const savedMessage = await newMessage.save();
 
-    // 🔹 Populate sender (và các field khác nếu cần)
+    // 3️⃣ Kiểm tra người nhận có đang ở trong room không
+    const room = io.sockets.adapter.rooms.get(conversationId);
+
+    let isReceiverInRoom = false;
+
+    if (room) {
+      for (const socketId of room) {
+        const socket = io.sockets.sockets.get(socketId);
+        if (socket?.userId && socket.userId.toString() !== sender.toString()) {
+          isReceiverInRoom = true;
+          break;
+        }
+      }
+    }
+
+    // 4️⃣ Nếu người nhận đang mở conversation → SEEN ngay
+    if (isReceiverInRoom) {
+      savedMessage.status = 'seen';
+      await savedMessage.save();
+    }
+
+    // 5️⃣ Populate message
     const populatedMessage = await Message.findById(savedMessage._id)
       .populate('sender', 'username _id')
       .populate({
         path: 'replyTo',
-        populate: { path: 'sender', select: 'username avatar _id' } // nếu replyTo là ref Message
+        populate: { path: 'sender', select: 'username avatar _id' }
       });
 
-    // Cập nhật lastMessage và lastMessageAt trong Conversation
+    // 6️⃣ Update conversation metadata
     conversation.lastMessage = savedMessage._id;
     conversation.lastMessageAt = savedMessage.createdAt;
     await conversation.save();
 
-    // Phát sự kiện qua Socket.io đến tất cả client trong phòng cuộc trò chuyện
+    // 7️⃣ Emit message cho room
     io.to(conversationId).emit('newMessage', populatedMessage);
 
-    res.status(201).json({
+    // 8️⃣ Nếu message đã seen → notify sender
+    if (savedMessage.status === 'seen') {
+      io.to(conversationId).emit('messagesSeen', {
+        conversationId,
+        userId: sender
+      });
+    }
+
+    return res.status(201).json({
       message: 'Message sent successfully',
       data: populatedMessage
     });
+
   } catch (error) {
     console.error('Error sending message:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
+
 
 // 🟡 Lấy tất cả tin nhắn trong 1 cuộc trò chuyện
 export const getMessagesByConversation = async (req, res) => {

@@ -7,6 +7,8 @@ import { Server } from 'socket.io';
 import { connectDB, disconnectDB } from './config/db.js';
 import User from './models/User.js';
 import Profile from './models/Profile.js';
+import Conversation from './models/Conversation.js';
+import Message from './models/Message.js';
 
 // Import routes
 import authRoutes from './routes/authRoutes.js';
@@ -86,15 +88,35 @@ io.on('connection', (socket) => {
         }
 
         // Notify friends about user's online status
-        socket.broadcast.emit('friendOnline', userId);
+        socket.broadcast.emit('friendStatus', {
+            userId,
+            status: 'online',
+            lastSeen: Date.now()
+        });
+
     });
 
     // Client joining a conversation room
-    socket.on('joinConversation', (conversationId) => {
+    socket.on('joinConversation', async (conversationId) => {
         socket.join(conversationId);
         console.log(`Socket ${socket.id} joined conversation ${conversationId}`);
+
+        // update message status to 'seen' for messages of other in this conversation
+        if (socket.userId) {
+            await Message.updateMany(
+                { conversationId, senderId: { $ne: socket.userId }, status: 'sent' },
+                { status: 'seen' }
+            );
+            // notify other participants in the conversation about message status update
+            socket.to(conversationId).emit('messagesSeen', {
+                conversationId,
+                userId: socket.userId
+            });
+        }
     });
 
+
+    // CLient disconnecting
     socket.on('disconnect', async () => {
         console.log('Client disconnected:', socket.id);
 
@@ -108,7 +130,12 @@ io.on('connection', (socket) => {
             }
 
             // Notify friends about user's offline status
-            socket.broadcast.emit('friendOffline', socket.userId);
+            socket.broadcast.emit('friendStatus', {
+                userId: socket.userId,
+                status: 'offline',
+                lastSeen: Date.now()
+            });
+
         }
     });
 });
